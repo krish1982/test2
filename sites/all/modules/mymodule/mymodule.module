@@ -1,0 +1,152 @@
+<?php
+ 
+function mymodule_menu()
+{
+    $items  =   array();
+    $items['mymodule/one']  =   array(
+        'name'  =>  'mymodule one name',
+        'description'   =>  'mymodule description',
+        'page callback' =>  'mymodule_pagecallback',
+        'access arguments' => array('access content'),
+    );
+    
+    $items['mymodule/two']  =   array(
+        'name'  =>  'mymodule two name',
+        'description'   =>  'mymodule description',
+        'page callback' =>   'main_page',
+        'access arguments' => array('access content'),
+    );
+        
+    return $items;
+}
+
+
+function mymodule_pagecallback()
+{    
+    $content = array();
+    $query = new EntityFieldQuery();
+    $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyOrderBy('created', 'DESC')
+    ->range(0,5)
+    ->pager(2);
+
+    $result = $query->execute();
+
+    $artworks = node_load_multiple(array_keys($result['node']));
+    foreach ($artworks as $artwork) {
+        $content[] = node_page_view($artwork, 'content');
+    }
+    $content['pager'] = array('#theme' => 'pager');
+    return $content; 
+}
+
+
+function mymodule_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state) {
+    
+    //module_load_include('inc', 'popup', 'includes/popup.api');
+   
+    $js = 'function popup() {
+$("#testclass").css("display", "block");
+}';
+    drupal_add_js($js, 'inline');
+   
+    $form['submit']=array(        
+          '#value' =>  t('Buy now'), 
+          '#attributes' => array('onclick' => 'if(!confirm("Are ?")){return false;}'),   
+        //'#prefix'   => '<a class="colorbox-node" href="terms-and-conditons">',
+        //'#suffix'   => '</a>',
+        '#type' => 'submit'
+    );
+}
+ 
+ 
+/*
+function mymodule_form_alter( &$form, $form_state, $form_id ){
+   // global $node;
+   // echo $node->nid;
+    switch ($form_id) {
+        case 'commerce_cart_add_to_cart_form_1':
+            
+            $form['#submit'][] =  'custom_function'; //drupal_goto($url='http://google.com', array('external' => TRUE));
+          //  $form['actions']['submit']['#value'] = t('Buy now');  
+             $form['submit']['#value'] = t('Buy now');
+            break;
+
+        default:
+            break;
+    }
+}
+
+function custom_function(){
+    return "this is altered submit of add to cart";
+}*/
+
+
+function main_page() {
+  return drupal_get_form('ajax_example_simplest');
+}
+
+function ajax_example_simplest($form, &$form_state) {
+  $form = array();
+  $form['changethis'] = array(
+    '#type' => 'select',
+    '#options' => array(
+      'one' => 'one',
+      'two' => 'two',
+      'three' => 'three',
+    ),
+    '#ajax' => array(
+      'callback' => 'ajax_example_simplest_callback',
+      'wrapper' => 'replace_textfield_div',
+     ),
+  );
+
+  // This entire form element will be replaced with an updated value.
+  $form['replace_textfield'] = array(
+    '#type' => 'textfield',
+    '#title' => t("The default value will be changed"),
+    '#description' => t("Say something about why you chose") . "'" .
+      (!empty($form_state['values']['changethis'])
+      ? $form_state['values']['changethis'] : t("Not changed yet")) . "'",
+    '#prefix' => '<div id="replace_textfield_div">',
+    '#suffix' => '</div>',
+  );
+  return $form;
+}
+
+function ajax_example_simplest_callback($form, $form_state) {
+  // The form has already been submitted and updated. We can return the replaced
+  // item as it is.
+  return $form['replace_textfield'];
+}
+
+
+
+function my_form_builder($form, &$form_state) {
+  $form['#prefix'] = '<div id="my-form-wrapper">';
+  $form['#suffix'] = '</div>';
+  
+$form['first_name'] = array(
+    '#title' => 'Your First Name',
+    '#type' => 'textfield',
+    '#ajax' => array(
+        'callback' => 'my_form_ajax_callback',
+        'wrapper' => 'my-form-wrapper',
+      ),
+  );
+  if (
+strlen($form_state['values']['first_name']) > 0) {
+    // Here you can add a new form element based on the current values a user entered.
+    $form['last_name'] = array(
+      '#title' => 'Your Last Name',
+      '#type' => 'textfield',
+      '#description' => 'You entered your first name, now enter your last name.',
+    );
+  }
+}
+
+
+function my_form_ajax_callback($form, &$form_state) {
+  return $form;
+}
